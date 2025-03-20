@@ -23,6 +23,38 @@ buffer times PRINTF_BUFFER_SIZE db 0            ; Buffer for formatted print
 
 
 
+; RODATA _______________________________________________________
+section .rodata
+PrintfSwitch:
+    dq L0       ; 'a'   EMPTY
+    dq L2       ; 'b' - binary
+    dq L3       ; 'c' - character
+    dq L4       ; 'd' - decimal
+    dq L0       ; 'e'   EMPTY
+    dq L0       ; 'f'   EMPTY
+    dq L0       ; 'g'   EMPTY
+    dq L0       ; 'h'   EMPTY
+    dq L0       ; 'i'   EMPTY
+    dq L0       ; 'j'   EMPTY
+    dq L0       ; 'k'   EMPTY
+    dq L0       ; 'l'   EMPTY
+    dq L0       ; 'm'   EMPTY
+    dq L0       ; 'n'   EMPTY
+    dq L15      ; 'o' - octal
+    dq L0       ; 'p'   EMPTY
+    dq L0       ; 'q'   EMPTY
+    dq L0       ; 'r'   EMPTY
+    dq L19      ; 's' - string
+    dq L0       ; 't'   EMPTY
+    dq L0       ; 'u'   EMPTY
+    dq L0       ; 'v'   EMPTY
+    dq L0       ; 'w'   EMPTY
+    dq L24      ; 'x' - hex
+    dq L0       ; 'y'   EMPTY
+    dq L0       ; 'z'   EMPTY
+
+
+
 ; CODE _________________________________________________________
 section .text
 
@@ -58,17 +90,13 @@ global ToxaPrintf
     inc rcx
 %endmacro
 
-%macro CHECK_CALL_SPEC 3            ; Macro to not duplicate specifier check and calling specifier function
-                                    ; (arg1 = specifier character, arg2 = label name, arg3 = specifier function)
-    mov cl, %1
-    cmp [rsi], cl       ; String specifier
-    jne %2
-        mov rbx, [rbp]  ; Extract arg from stack
-        add rbp, 8      ; Go to next arg
-        call %3
-        inc rsi
-        jmp .Loop
-%2:
+%macro CALL_SPEC_FUNC 1             ; Macro to not duplicate specifier check and calling specifier function
+                                    ; (arg = specifier function)
+    mov rbx, [rbp]  ; Extract arg from stack
+    add rbp, 8      ; Go to next arg
+    call %1
+    inc rsi
+    jmp LoopPrintf
 %endmacro
 
 _start:
@@ -126,51 +154,74 @@ ToxaPrintf:
                 mov r8b, STR_END_CHAR
                 mov r9b, SPECIFIER_CHAR
 
-.Loop:
+LoopPrintf:
                 cmp [rsi], r8b
-                je .EndLoop            ; if ([rsi] == STR_END_CHAR) break
+                je EndLoopPrintf        ; if ([rsi] == STR_END_CHAR) break
 
                 cmp [rsi], r9b
                 je .Specifier           ; if ([rsi] != SPECIFIER_CHAR) putchar([rsi])
               ;{
                 BUFFER_PUTCHAR [rsi]
                 inc rsi             ; Move to next character
-                jmp .Loop
+                jmp LoopPrintf
               ;}
 .Specifier:                         ; else {figure kind of specifier out}
               ;{
                 inc rsi             ; Move to character after character-specifier
 
-                CHECK_CALL_SPEC 'd', .NotDecimal, PrintDecimal
-                CHECK_CALL_SPEC 'x', .NotHex, PrintHex
-                CHECK_CALL_SPEC 'b', .NotBin, PrintBin
-                CHECK_CALL_SPEC 'o', .NotOctal, PrintOctal
+                mov r10b, '%'
+                cmp [rsi], r10b
+                je L27
 
-                mov cl, 'c'
-                cmp [rsi], cl       ; String specifier
-                jne .NotChar
+                mov r10b, 'a'
+                cmp [rsi], r10b
+                jb L0
+
+                mov r10b, 'z'
+                cmp [rsi], r10b
+                ja L0
+
+                xor r10, r10
+                mov r10b, [rsi]
+                sub r10, 'a'
+                shl r10, 3
+                add r10, PrintfSwitch   ; Calculate addr in jump-table
+                mov r10, [r10]          ; Get addr from jump-table
+                jmp r10
+                ; switch
+                L2:
+                    CALL_SPEC_FUNC PrintBin
+
+                L3:
                     BUFFER_PUTCHAR [rbp]    ; Print current stack element
                     inc rsi
+                    add rbp, 8              ; Go to next arg
+                    jmp LoopPrintf
 
-                    add rbp, 8      ; Go to next arg
-                    jmp .Loop
-            .NotChar:
+                L4:
+                    CALL_SPEC_FUNC PrintDecimal
 
-                mov cl, '%'
-                cmp [rsi], cl       ; String specifier
-                jne .NotPercent
+                L15:
+                    CALL_SPEC_FUNC PrintOctal
+
+                L19:
+                    CALL_SPEC_FUNC PrintString
+
+                L24:
+                    CALL_SPEC_FUNC PrintHex
+
+                L27:
                     BUFFER_PUTCHAR [rsi]    ; Print current string character ('%')
                     inc rsi
-                    jmp .Loop
-            .NotPercent:
+                    jmp LoopPrintf
 
-                CHECK_CALL_SPEC 's', .NotString, BufferString
-
-                inc rsi             ; Skip unknown specifier
-                jmp .Loop
+                L0:
+                    inc rsi                 ; Skip unknown specifier
+                    jmp LoopPrintf
+                ; end switch
               ;}
 
-.EndLoop:
+EndLoopPrintf:
 
                 mov rdx, rdi
                 lea rsi, [buffer]
@@ -410,7 +461,7 @@ PrintNumber:
 ;
 ; Destr:    AL
 ;---------------------------------------------------------------
-BufferString:
+PrintString:
 
 .Loop:
                 cmp [rbx], r8b
