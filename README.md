@@ -1,2 +1,2 @@
-# MyPrintf
-My realisation of C standard lib printf() function
+# ToxaPrintf
+My implementation of C standard lib printf() function
