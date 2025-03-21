@@ -58,7 +58,7 @@ PrintfSwitch:
 ; CODE _________________________________________________________
 section .text
 
-global _start
+; global _start
 global ToxaPrintf
 
 %macro BUFFER_PUTCHAR 1             ; Macro to print one character in standard output (arg = character)
@@ -101,15 +101,13 @@ global ToxaPrintf
 
 _start:
                 push another_string
-                push 0b11100
-                push 0o724
-                mov r9,  0x6a4f
-                mov r8,  'R'
-                mov rdx, -1
-                lea rcx, [string]
+                mov r9,  0b1011100
+                mov r8,  0o724
+                mov rcx, 0x6a4f
+                mov rdx, 'R'
+                mov rsi, -264
+                lea rdi, [string]
                 call ToxaPrintf
-                pop r9
-                pop r9
                 pop r9
 
                 ; lea rcx, [another_string]
@@ -123,19 +121,21 @@ _start:
 ; Format printing (check README.md)
 ;
 ; Entry:    according to "fastcall":
-;           RCX         = string to format
-;           RDX, R8, R9 = 2nd, 3d, 4th args
+;           RDI = string to format
+;           RSI, RDX, RCX, R8, R9 = 2-6 args
 ;           Other args in stack (from right to left)
 ;
 ; Exit:     RAX = number of printed characters {NOT DONE}
-; Destr:    R10 {NEED_TO_UPDATE}
+; Destr:    R10 R11
 ;---------------------------------------------------------------
 ToxaPrintf:
                 pop r10             ; Save func ret addr in R11
 
                 push r9             ; Save first args in stack (except string addr)
                 push r8
+                push rcx
                 push rdx
+                push rsi
 
                 push rbx
                 push rbp
@@ -143,7 +143,7 @@ ToxaPrintf:
                 push rdi            ; Save immutable registers
                 push r10            ; Save ret func addr
 
-                mov rsi, rcx        ; Load first arg to source reg
+                lea rsi, [rdi]      ; Load first arg
                 lea rdi, [buffer]   ; Pointer to buffer
 
                 mov rbp, rsp
@@ -240,7 +240,7 @@ ToxaPrintf:
                 pop rbp
                 pop rbx
 
-                add rsp, 8*3        ; Skip added 3 argument-registers
+                add rsp, 8*5        ; Skip added 5 argument-registers
                 push r10            ; Return func ret addr
                 ret
 
@@ -254,7 +254,7 @@ ToxaPrintf:
 ; Exit:     RDI = new buffer pointer
 ;           RCX = RCX + {number of printed characters}
 ;
-; Destr:    RAX RDX R10 R11 {NEED_TO_UPDATE}
+; Destr:    RAX RDX R10 R11
 ;---------------------------------------------------------------
 PrintDecimal:
 
