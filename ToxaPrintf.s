@@ -15,7 +15,7 @@ NUMBERS_BUFFER_SIZE equ 64      ; Size of buffer for calculating numbers
 SPECIFIER_CHAR      equ '%'     ; Character-specifier
 STR_END_CHAR        equ 0       ; End of null-terminated strings
 
-string db "%% | d = %d | c = %c | x = %x | o = %o | b = %b | s = %s", 0xa, 0    ; Null-terminated example format-string
+string db "u = %u | %% | d = %d | c = %c | x = %x | o = %o | b = %b | s = %s", 0xa, 0    ; Null-terminated example format-string
 another_string db "TOXA!!!", 0                          ; Just simple string
 
 numbers_buffer times NUMBERS_BUFFER_SIZE db 0   ; Buffer for calculating numbers
@@ -26,32 +26,32 @@ buffer times PRINTF_BUFFER_SIZE db 0            ; Buffer for formatted print
 ; RODATA _______________________________________________________
 section .rodata
 PrintfSwitch:
-    dq L0       ; 'a'   EMPTY
-    dq L2       ; 'b' - binary
-    dq L3       ; 'c' - character
-    dq L4       ; 'd' - decimal
-    dq L0       ; 'e'   EMPTY
-    dq L0       ; 'f'   EMPTY
-    dq L0       ; 'g'   EMPTY
-    dq L0       ; 'h'   EMPTY
-    dq L0       ; 'i'   EMPTY
-    dq L0       ; 'j'   EMPTY
-    dq L0       ; 'k'   EMPTY
-    dq L0       ; 'l'   EMPTY
-    dq L0       ; 'm'   EMPTY
-    dq L0       ; 'n'   EMPTY
-    dq L15      ; 'o' - octal
-    dq L0       ; 'p'   EMPTY
-    dq L0       ; 'q'   EMPTY
-    dq L0       ; 'r'   EMPTY
-    dq L19      ; 's' - string
-    dq L0       ; 't'   EMPTY
-    dq L0       ; 'u'   EMPTY
-    dq L0       ; 'v'   EMPTY
-    dq L0       ; 'w'   EMPTY
-    dq L24      ; 'x' - hex
-    dq L0       ; 'y'   EMPTY
-    dq L0       ; 'z'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'a'   EMPTY
+    dq ToxaPrintf.binary_specifier      ; 'b' - binary
+    dq ToxaPrintf.char_specifier        ; 'c' - character
+    dq ToxaPrintf.decimal_specifier     ; 'd' - decimal
+    dq ToxaPrintf.unknown_specifier     ; 'e'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'f'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'g'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'h'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'i'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'j'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'k'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'l'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'm'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'n'   EMPTY
+    dq ToxaPrintf.octal_specifier       ; 'o' - octal
+    dq ToxaPrintf.unknown_specifier     ; 'p'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'q'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'r'   EMPTY
+    dq ToxaPrintf.string_specifier      ; 's' - string
+    dq ToxaPrintf.unknown_specifier     ; 't'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'u'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'v'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'w'   EMPTY
+    dq ToxaPrintf.hex_specifier         ; 'x' - hex
+    dq ToxaPrintf.unknown_specifier     ; 'y'   EMPTY
+    dq ToxaPrintf.unknown_specifier     ; 'z'   EMPTY
 
 
 
@@ -96,7 +96,7 @@ global ToxaPrintf
     add rbp, 8      ; Go to next arg
     call %1
     inc rsi
-    jmp LoopPrintf
+    jmp .Loop
 %endmacro
 
 _start:
@@ -154,16 +154,16 @@ ToxaPrintf:
                 mov r8b, STR_END_CHAR
                 mov r9b, SPECIFIER_CHAR
 
-LoopPrintf:
+.Loop:
                 cmp [rsi], r8b
-                je EndLoopPrintf        ; if ([rsi] == STR_END_CHAR) break
+                je .EndLoop             ; if ([rsi] == STR_END_CHAR) break
 
                 cmp [rsi], r9b
                 je .Specifier           ; if ([rsi] != SPECIFIER_CHAR) putchar([rsi])
               ;{
                 BUFFER_PUTCHAR [rsi]
                 inc rsi             ; Move to next character
-                jmp LoopPrintf
+                jmp .Loop
               ;}
 .Specifier:                         ; else {figure kind of specifier out}
               ;{
@@ -171,16 +171,17 @@ LoopPrintf:
 
                 mov r10b, '%'
                 cmp [rsi], r10b
-                je L27
+                je .percent_specifier
 
                 mov r10b, 'a'
                 cmp [rsi], r10b
-                jb L0
+                jb .unknown_specifier
 
                 mov r10b, 'z'
                 cmp [rsi], r10b
-                ja L0
+                ja .unknown_specifier
 
+                ;switch
                 xor r10, r10
                 mov r10b, [rsi]
                 sub r10, 'a'
@@ -188,41 +189,40 @@ LoopPrintf:
                 add r10, PrintfSwitch   ; Calculate addr in jump-table
                 mov r10, [r10]          ; Get addr from jump-table
                 jmp r10
-                ; switch
-                L2:
+
+                .binary_specifier:
                     CALL_SPEC_FUNC PrintBin
 
-                L3:
+                .char_specifier:
                     BUFFER_PUTCHAR [rbp]    ; Print current stack element
                     inc rsi
                     add rbp, 8              ; Go to next arg
-                    jmp LoopPrintf
+                    jmp .Loop
 
-                L4:
+                .decimal_specifier:
                     CALL_SPEC_FUNC PrintDecimal
 
-                L15:
+                .octal_specifier:
                     CALL_SPEC_FUNC PrintOctal
 
-                L19:
+                .string_specifier:
                     CALL_SPEC_FUNC PrintString
 
-                L24:
+                .hex_specifier:
                     CALL_SPEC_FUNC PrintHex
 
-                L27:
-                    BUFFER_PUTCHAR [rsi]    ; Print current string character ('%')
+                .percent_specifier:
+                    BUFFER_PUTCHAR '%'      ; Print current string character ('%')
                     inc rsi
-                    jmp LoopPrintf
+                    jmp .Loop
 
-                L0:
+                .unknown_specifier:
                     inc rsi                 ; Skip unknown specifier
-                    jmp LoopPrintf
+                    jmp .Loop
                 ; end switch
               ;}
 
-EndLoopPrintf:
-
+.EndLoop:
                 mov rdx, rdi
                 lea rsi, [buffer]
                 sub rdx, rsi        ; Calculate number of characters in buffer
