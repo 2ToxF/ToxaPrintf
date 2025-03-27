@@ -2,15 +2,7 @@
 My implementation of C standard lib printf() function
 
 
-## Usage
-### Independently
-If you want to use ToxaPrintf.s independently, you should uncomment `; global _start` string in `section .text` and compile file with following commands:
-```
-nasm -f elf64 ToxaPrintf.s
-ld -s -o ToxaPrintf.out ToxaPrintf.o
-```
-
-### As module
+## Usage as module
 If you want to use ToxaPrintf.s as module in C files, you should compile and assemble your C files without linking:
 ```
 gcc -c <your C file>

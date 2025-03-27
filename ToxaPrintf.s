@@ -15,9 +15,6 @@ NUMBERS_BUFFER_SIZE equ 64      ; Size of buffer for calculating numbers
 SPECIFIER_CHAR      equ '%'     ; Character-specifier
 STR_END_CHAR        equ 0       ; End of null-terminated strings
 
-string db "u = %u | %% | d = %d | c = %c | x = %x | o = %o | b = %b | s = %s", 0xa, 0    ; Null-terminated example format-string
-another_string db "TOXA!!!", 0                          ; Just simple string
-
 numbers_buffer times NUMBERS_BUFFER_SIZE db 0   ; Buffer for calculating numbers
 buffer times PRINTF_BUFFER_SIZE db 0            ; Buffer for formatted print
 
@@ -58,7 +55,6 @@ PrintfSwitch:
 ; CODE _________________________________________________________
 section .text
 
-; global _start
 global ToxaPrintf
 
 %macro BUFFER_PUTCHAR 1             ; Macro to print one character in standard output (arg = character)
@@ -99,23 +95,6 @@ global ToxaPrintf
     jmp .Loop
 %endmacro
 
-_start:
-                push another_string
-                mov r9,  0b1011100
-                mov r8,  0o724
-                mov rcx, 0x6a4f
-                mov rdx, 'R'
-                mov rsi, -264
-                lea rdi, [string]
-                call ToxaPrintf
-                pop r9
-
-                ; lea rcx, [another_string]
-                ; call ToxaPrintf
-
-                mov rax, 0x3c       ; exit64(rdi)
-                xor rdi, rdi
-                syscall
 
 ;---------------------------------------------------------------
 ; Format printing (check README.md)
