@@ -28,7 +28,7 @@ buffer times PRINTF_BUFFER_SIZE db 0            ; Buffer for formatted print
 
 ; RODATA _______________________________________________________
 section .rodata
-PrintfSwitch:
+PrintfSwitch:                           ; TODO: сделать покороче при желании
     dq ToxaPrintf.unknown_specifier     ; 'a'   EMPTY
     dq ToxaPrintf.binary_specifier      ; 'b' - binary
     dq ToxaPrintf.char_specifier        ; 'c' - character
@@ -166,7 +166,7 @@ ToxaPrintf:
                 cmp [rsi], r10b
                 ja .unknown_specifier
 
-                ;switch
+                ; switch (TODO: заменить одной командой)
                 xor r10, r10
                 mov r10b, [rsi]
                 sub r10, 'a'
@@ -276,7 +276,7 @@ PrintDecimal:
 
 
 ;---------------------------------------------------------------
-; Print binary number
+; Print binary number (TODO: заменить bin, octal и hex одной функцией)
 ;
 ; Entry:    RBX = number to print
 ;           RDI = buffer
