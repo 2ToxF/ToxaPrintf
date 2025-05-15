@@ -13,7 +13,7 @@ Also you need to assemble ToxaPrintf.s without linking:
 nasm -f elf64 ToxaPrintf.s
 ```
 
-And then link them with ToxaPrintf.o (!!!pay attentrion, that `-no-pie` flag is neccessary):
+And then link them with ToxaPrintf.o (!!!pay attentrion, that code in `ToxaPrintf.s` is position-dependent, so `-no-pie` flag is neccessary):
 ```
 gcc -no-pie <your object files> ToxaPrintf.o
 ```

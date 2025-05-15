@@ -2,8 +2,14 @@
 ;! ToxaPrintf.s
 ;! My implementation of C standard lib printf() function
 ;!
-;! Compilation: nasm -f elf64 ToxaPrintf.s
-;!              ld -s -o ToxaPrintf.out ToxaPrintf.o
+;! Available specificators:
+;!  %d - signed decimal
+;!  %b - binary representation of a number
+;!  %o - octal representation of a number
+;!  %x - hexadecimal representation of a number
+;!  %c - character from ASCII-table
+;!  %s - string
+;!  %% - % character
 ;!==============================================================
 
 
